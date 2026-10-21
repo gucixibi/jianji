@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>健迹 · 个人健康助手</title>
+  <script src="vendor/tailwind.js"></script>
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'] },
+          colors: {
+            // 主品牌色：柔和医疗蓝（低饱和度）
+            brand: {
+              50:  '#f0f6fc',
+              100: '#dbe8f5',
+              200: '#bcd3ea',
+              300: '#8fb5db',
+              400: '#5d8ec6',
+              500: '#3d6fae',
+              600: '#2d5791',
+              700: '#264776',
+              800: '#223c62',
+              900: '#1e3353',
+            },
+            // 兼容旧 teal 类：统一映射为品牌蓝，保证全局配色一致
+            teal: {
+              50:  '#f0f6fc',
+              100: '#dbe8f5',
+              200: '#bcd3ea',
+              300: '#8fb5db',
+              400: '#5d8ec6',
+              500: '#3d6fae',
+              600: '#2d5791',
+              700: '#264776',
+              800: '#223c62',
+              900: '#1e3353',
+            }
+          },
+          boxShadow: {
+            card: '0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)',
+            'card-hover': '0 8px 24px rgba(15,23,42,0.08), 0 2px 6px rgba(15,23,42,0.04)',
+            glow: '0 0 0 4px rgba(45,87,145,0.12)',
+          },
+          borderRadius: {
+            '2xl': '1rem',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* ===== 全局 Design Tokens ===== */
+    :root {
+      --bg: #f6f8fa;
+      --bg-elevated: #ffffff;
+      --border: #e6e8eb;
+      --border-strong: #d1d5db;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --brand: #2d5791;
+      --brand-hover: #264776;
+      --brand-light: #f0f6fc;
+    }
+
+    body {
+      font-feature-settings: 'cv02','cv03','cv04','cv11';
+      background: var(--bg);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== 组件样式 ===== */
+    .nav-item {
+      @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all duration-150;
+    }
+    .nav-item.active {
+      @apply bg-brand-50 text-brand-700 font-semibold;
+      box-shadow: inset 0 0 0 1px rgba(45,87,145,0.18), 0 1px 2px rgba(45,87,145,0.08);
+    }
+    .nav-item.active i { color: var(--brand); }
+
+    .card {
+      @apply bg-white rounded-2xl p-5 transition-all duration-200;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.03);
+    }
+    .card:hover {
+      box-shadow: 0 8px 24px rgba(15,23,42,0.07), 0 2px 6px rgba(15,23,42,0.04);
+      border-color: #d9dde2;
+    }
+    .card h2 { @apply text-xl font-bold text-slate-900; letter-spacing: -0.02em; }
+    .card h3 { @apply font-semibold text-slate-900; letter-spacing: -0.01em; }
+
+    .btn-primary {
+      @apply bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl font-medium inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(45,87,145,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+    .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(45,87,145,0.3); transform: translateY(-1px); }
+    .btn-primary:active:not(:disabled) { transform: translateY(0); box-shadow: 0 1px 2px rgba(45,87,145,0.2); }
+    .btn-secondary {
+      @apply bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl font-medium inline-flex items-center gap-2 transition-all duration-150;
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+    .btn-danger {
+      @apply bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl font-medium inline-flex items-center gap-2 transition-all duration-150;
+      border: 1px solid #fecdd3;
+    }
+    .btn-danger:hover { transform: translateY(-1px); }
+
+    .field-label {
+      @apply block text-sm font-medium text-slate-700 mb-1.5;
+    }
+    .field-input {
+      @apply w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 transition-all duration-150;
+      border: 1px solid var(--border);
+      @apply focus:outline-none focus:bg-white;
+      box-shadow: 0 0 0 0 rgba(45,87,145,0);
+    }
+    .field-input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(45,87,145,0.12);
+    }
+    .field-input:hover:not(:focus) { border-color: var(--border-strong); }
+
+    .badge {
+      @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+    }
+    .badge-teal   { @apply bg-brand-50 text-brand-700; }
+    .badge-amber  { @apply bg-amber-50 text-amber-700; }
+    .badge-slate  { @apply bg-slate-100 text-slate-600; }
+    .badge-rose   { @apply bg-rose-50 text-rose-700; }
+    .badge-indigo { @apply bg-indigo-50 text-indigo-700; }
+    .badge-emerald{ @apply bg-emerald-50 text-emerald-700; }
+    .badge-sky    { @apply bg-sky-50 text-sky-700; }
+
+    /* Lucide 图标尺寸统一 */
+    [data-lucide] { stroke-width: 2; }
+
+    /* 打印 */
+    @media print {
+      body { background: white !important; }
+      header, nav, #drawer, .no-print { display: none !important; }
+      main { max-width: 100% !important; }
+      .card { break-inside: avoid; border: 1px solid #ccc !important; box-shadow: none !important; }
+    }
+
+    /* 草稿高亮 */
+    .draft-field { @apply bg-amber-50 border-amber-200; }
+    .draft-field input, .draft-field select { @apply bg-amber-50; }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* 过渡动画 */
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="min-h-screen overflow-x-hidden">
+
+  <!-- 顶部导航 -->
+  <header class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-40" style="border-color: var(--border); box-shadow: 0 1px 2px rgba(15,23,42,0.04);">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md shadow-brand-600/20">迹</div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 tracking-tight">健迹</h1>
+          <p class="text-xs text-slate-500 -mt-0.5">个人健康助手</p>
+        </div>
+      </div>
+      <button id="btn-menu" class="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors" aria-label="菜单">
+        <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 py-5 md:py-8 flex flex-col md:flex-row gap-6">
+
+    <!-- 侧边导航 -->
+    <nav id="sidebar" class="hidden md:block md:w-56 shrink-0">
+      <div class="bg-white rounded-2xl p-2 md:sticky md:top-24" style="border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(15,23,42,0.04);">
+        <a href="#" data-route="overview" class="nav-item active"><i data-lucide="home" class="w-[18px] h-[18px]"></i>概览</a>
+        <a href="#" data-route="record" class="nav-item"><i data-lucide="clipboard-list" class="w-[18px] h-[18px]"></i>健康记录</a>
+        <a href="#" data-route="trend" class="nav-item"><i data-lucide="trending-up" class="w-[18px] h-[18px]"></i>趋势回顾</a>
+        <a href="#" data-route="visit" class="nav-item"><i data-lucide="stethoscope" class="w-[18px] h-[18px]"></i>就诊准备</a>
+        <div class="border-t my-2" style="border-color: var(--border);"></div>
+        <a href="#" data-route="assistant" class="nav-item"><i data-lucide="bot" class="w-[18px] h-[18px]"></i>AI 助手</a>
+        <a href="#" data-route="medication" class="nav-item"><i data-lucide="pill" class="w-[18px] h-[18px]"></i>服药管理</a>
+        <a href="#" data-route="wheel" class="nav-item"><i data-lucide="dices" class="w-[18px] h-[18px]"></i>选择转轮</a>
+        <a href="#" data-route="privacy" class="nav-item"><i data-lucide="shield-check" class="w-[18px] h-[18px]"></i>数据与隐私</a>
+      </div>
+    </nav>
+
+    <!-- 移动端抽屉 -->
+    <div id="drawer" class="fixed inset-0 bg-black/40 z-50 hidden md:hidden" onclick="closeDrawer()">
+      <div class="absolute left-0 top-0 bottom-0 w-64 bg-white p-4 overflow-y-auto" onclick="event.stopPropagation()" style="box-shadow: 4px 0 24px rgba(15,23,42,0.12);">
+        <div class="flex items-center gap-2.5 mb-6">
+          <div class="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center text-white font-bold shadow-md shadow-brand-600/20">迹</div>
+          <span class="font-bold text-slate-900">健迹 · 导航</span>
+        </div>
+        <div id="drawer-nav"></div>
+      </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 min-w-0">
+      <div id="page-container"></div>
+    </main>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm opacity-0 pointer-events-none transition-all duration-300 z-50" style="box-shadow: 0 8px 24px rgba(15,23,42,0.2);"></div>
+
+  <!-- Scripts (顺序重要) -->
+  <script src="js/data.js?v=13"></script>
+  <script src="js/ai.js?v=13"></script>
+  <script src="js/chart-utils.js?v=13"></script>
+  <script src="js/ocr.js?v=13"></script>
+  <script src="js/record.js?v=13"></script>
+  <script src="js/trend.js?v=13"></script>
+  <script src="js/visit.js?v=13"></script>
+  <script src="js/overview.js?v=13"></script>
+  <script src="js/medication.js?v=13"></script>
+  <script src="js/wheel.js?v=13"></script>
+  <script src="js/assistant.js?v=13"></script>
+  <script src="js/privacy.js?v=13"></script>
+  <script src="js/app.js?v=13"></script>
+</body>
+</html>
